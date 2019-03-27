@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ApolloError } from 'apollo-client';
 import { DocumentNode } from 'graphql';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 
@@ -44,7 +45,7 @@ export function withQuery<
   // allow for advanced referential equality checks
   let lastResultProps: TChildProps | void;
   return (
-    WrappedComponent: React.ComponentType<TProps & TChildProps>,
+    WrappedComponent: React.ComponentType<TChildProps & TProps>,
   ): React.ComponentClass<TProps> => {
     const graphQLDisplayName = `${alias}(${getDisplayName(WrappedComponent)})`;
     class GraphQL extends GraphQLBase<TProps, TChildProps> {
@@ -78,15 +79,7 @@ export function withQuery<
                 });
               }
               // if we have skipped, no reason to manage any reshaping
-              if (shouldSkip) {
-                return (
-                  <WrappedComponent
-                    {...props as TProps}
-                    {...{} as TChildProps}
-                  />
-                );
-              }
-
+              if (shouldSkip) return <WrappedComponent {...props} />;
               // the HOC's historically hoisted the data from the execution result
               // up onto the result since it was passed as a nested prop
               // we massage the Query components shape here to replicate that
@@ -102,12 +95,7 @@ export function withQuery<
                 childProps = lastResultProps;
               }
 
-              return (
-                <WrappedComponent
-                  {...props as TProps}
-                  {...childProps as TChildProps}
-                />
-              );
+              return <WrappedComponent {...props} {...childProps} />;
             }}
           </Query>
         );

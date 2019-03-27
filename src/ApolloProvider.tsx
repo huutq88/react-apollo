@@ -3,7 +3,6 @@ import * as PropTypes from 'prop-types';
 import { Component } from 'react';
 import ApolloClient from 'apollo-client';
 import { DocumentNode } from 'graphql';
-import { ApolloContext } from './ApolloContext';
 
 import { invariant } from 'ts-invariant';
 
@@ -50,12 +49,6 @@ export default class ApolloProvider<TCache> extends Component<ApolloProviderProp
   }
 
   render() {
-    return ApolloContext ? (
-      <ApolloContext.Provider value={this.getChildContext()}>
-        {this.props.children}
-      </ApolloContext.Provider>
-    ) : (
-      this.props.children
-    );
+    return this.props.children;
   }
 }
