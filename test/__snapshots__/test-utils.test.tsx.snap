@@ -4,6 +4,7 @@ exports[`allows for querying with the typename 1`] = `
 Object {
   "__typename": "User",
   "id": "user_id",
+  Symbol(id): "User:user_id",
 }
 `;
 
@@ -11,6 +12,7 @@ exports[`does not error if the variables match but have different order 1`] = `
 Object {
   "__typename": "User",
   "id": "user_id",
+  Symbol(id): "User:user_id",
 }
 `;
 
@@ -48,5 +50,6 @@ exports[`mocks the data 1`] = `
 Object {
   "__typename": "User",
   "id": "user_id",
+  Symbol(id): "User:user_id",
 }
 `;

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DocumentNode } from 'graphql';
-import hoistNonReactStatics from 'hoist-non-react-statics';
+const hoistNonReactStatics = require('hoist-non-react-statics');
 
 import { parser } from './parser';
 import { MutationOpts, OperationOption, OptionProps, MutateProps } from './types';
@@ -12,11 +12,11 @@ import {
   GraphQLBase,
 } from './hoc-utils';
 
-export function withMutation<
+export function mutation<
   TProps extends TGraphQLVariables | {} = {},
   TData = {},
   TGraphQLVariables = {},
-  TChildProps = MutateProps<TData, TGraphQLVariables>
+  TChildProps = Partial<MutateProps<TData, TGraphQLVariables>>
 >(
   document: DocumentNode,
   operationOptions: OperationOption<TProps, TData, TGraphQLVariables, TChildProps> = {},
@@ -51,6 +51,8 @@ export function withMutation<
           opts.variables = calculateVariablesFromProps(
             operation,
             props,
+            graphQLDisplayName,
+            getDisplayName(WrappedComponent),
           );
         }
 

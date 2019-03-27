@@ -8,7 +8,7 @@ import { ApolloProvider } from 'react-apollo';
 import { App } from './App';
 
 const httpLink = createHttpLink({
-  uri: 'https://ojo6385vn6.sse.codesandbox.io',
+  uri: 'https://mpjk0plp9.lp.gql.zone/graphql',
 });
 
 const client = new ApolloClient({

@@ -8,8 +8,8 @@ import { ZenObservable } from 'zen-observable-ts';
 import { OperationVariables } from './types';
 import { getClient } from './component-utils';
 
-import shallowEqual from './utils/shallowEqual';
-import { invariant } from 'ts-invariant';
+const shallowEqual = require('fbjs/lib/shallowEqual');
+const invariant = require('invariant');
 
 export interface SubscriptionResult<TData = any> {
   loading: boolean;
@@ -29,7 +29,6 @@ export interface SubscriptionProps<TData = any, TVariables = OperationVariables>
   shouldResubscribe?: any;
   client?: ApolloClient<Object>;
   onSubscriptionData?: (options: OnSubscriptionDataOptions<TData>) => any;
-  onSubscriptionComplete?: () => void;
   children?: (result: SubscriptionResult<TData>) => React.ReactNode;
 }
 
@@ -48,7 +47,7 @@ class Subscription<TData = any, TVariables = any> extends React.Component<
   SubscriptionState<TData>
 > {
   static contextTypes = {
-    client: PropTypes.object,
+    client: PropTypes.object.isRequired,
   };
 
   static propTypes = {
@@ -56,7 +55,6 @@ class Subscription<TData = any, TVariables = any> extends React.Component<
     variables: PropTypes.object,
     children: PropTypes.func,
     onSubscriptionData: PropTypes.func,
-    onSubscriptionComplete: PropTypes.func,
     shouldResubscribe: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
   };
 
@@ -138,7 +136,6 @@ class Subscription<TData = any, TVariables = any> extends React.Component<
     this.querySubscription = this.queryObservable!.subscribe({
       next: this.updateCurrentData,
       error: this.updateError,
-      complete: this.completeSubscription
     });
   };
 
@@ -166,12 +163,6 @@ class Subscription<TData = any, TVariables = any> extends React.Component<
       error,
       loading: false,
     });
-  };
-
-  private completeSubscription = () => {
-    const { onSubscriptionComplete } = this.props;
-    if (onSubscriptionComplete) onSubscriptionComplete();
-    this.endSubscription();
   };
 
   private endSubscription = () => {

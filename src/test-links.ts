@@ -8,20 +8,15 @@ import {
 } from 'apollo-link';
 
 import { print } from 'graphql/language/printer';
-import {
-  addTypenameToDocument,
-  removeClientSetsFromDocument,
-} from 'apollo-utilities';
+import { addTypenameToDocument } from 'apollo-utilities';
 const isEqual = require('lodash.isequal');
-
-type ResultFunction<T> = () => T;
 
 export interface MockedResponse {
   request: GraphQLRequest;
-  result?: FetchResult | ResultFunction<FetchResult>;
+  result?: FetchResult;
   error?: Error;
   delay?: number;
-  newData?: ResultFunction<FetchResult>;
+  newData?: () => FetchResult;
 }
 
 export interface MockedSubscriptionResult {
@@ -91,18 +86,12 @@ export class MockLink extends ApolloLink {
       throw new Error(`Mocked response should contain either result or error: ${key}`);
     }
 
-    return new Observable(observer => {
+    return new Observable<FetchResult>(observer => {
       let timer = setTimeout(() => {
         if (error) {
           observer.error(error);
         } else {
-          if (result) {
-            observer.next(
-              typeof result === 'function'
-                ? (result as ResultFunction<FetchResult>)()
-                : result
-            );
-          }
+          if (result) observer.next(result);
           observer.complete();
         }
       }, delay ? delay : 0);
@@ -135,11 +124,10 @@ export class MockSubscriptionLink extends ApolloLink {
     });
   }
 
-  public simulateResult(result: MockedSubscriptionResult, complete = false) {
+  public simulateResult(result: MockedSubscriptionResult) {
     setTimeout(() => {
       const { observer } = this;
       if (!observer) throw new Error('subscription torn down');
-      if (complete && observer.complete) observer.complete();
       if (result.result && observer.next) observer.next(result.result);
       if (result.error && observer.error) observer.error(result.error);
     }, result.delay || 0);
@@ -155,10 +143,11 @@ export class MockSubscriptionLink extends ApolloLink {
 }
 
 function requestToKey(request: GraphQLRequest, addTypename: Boolean): string {
-  const query = removeClientSetsFromDocument(request.query);
   const queryString =
-    query && print(addTypename ? addTypenameToDocument(query) : query);
+    request.query && print(addTypename ? addTypenameToDocument(request.query) : request.query);
+
   const requestKey = { query: queryString };
+
   return JSON.stringify(requestKey);
 }
 

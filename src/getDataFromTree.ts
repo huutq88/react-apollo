@@ -1,50 +1,51 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
+import { renderToStaticMarkup } from 'react-dom/server';
 import Query from './Query';
-import { ObservableQuery } from 'apollo-client';
-import { DocumentNode } from 'graphql';
 
-type QueryInfo = {
-  seen: boolean;
-  observable: ObservableQuery<any, any> | null;
-}
+// Like a Set, but for tuples. In practice, this class is used to store
+// (query, JSON.stringify(variables)) tuples.
+class Trie {
+  private children: Map<any, Trie> | null = null;
+  private added = false;
 
-function makeDefaultQueryInfo(): QueryInfo {
-  return {
-    seen: false,
-    observable: null,
-  };
+  has(...keys: any[]) {
+    let node: Trie = this;
+    return keys.every(key => {
+      const child = node.children && node.children.get(key);
+      return !!(child && (node = child));
+    }) && node.added;
+  }
+
+  add(...keys: any[]) {
+    let node: Trie = this;
+    keys.forEach(key => {
+      const map = node.children || (node.children = new Map);
+      const child = map.get(key);
+      if (child) {
+        node = child;
+      } else {
+        map.set(key, node = new Trie());
+      }
+    });
+    node.added = true;
+  }
 }
 
 export class RenderPromises {
   // Map from Query component instances to pending fetchData promises.
   private queryPromises = new Map<Query<any, any>, Promise<any>>();
 
-  // Two-layered map from (query document, stringified variables) to QueryInfo
-  // objects. These QueryInfo objects are intended to survive through the whole
-  // getMarkupFromTree process, whereas specific Query instances do not survive
-  // beyond a single call to renderToStaticMarkup.
-  private queryInfoTrie = new Map<DocumentNode, Map<string, QueryInfo>>();
-
-  // Registers the server side rendered observable.
-  public registerSSRObservable<TData, TVariables>(
-    queryInstance: Query<TData, TVariables>,
-    observable: ObservableQuery<any, TVariables>,
-  ) {
-    this.lookupQueryInfo(queryInstance).observable = observable;
-  }
-
-  // Get's the cached observable that matches the SSR Query instances query and variables.
-  public getSSRObservable<TData, TVariables>(queryInstance: Query<TData, TVariables>) {
-    return this.lookupQueryInfo(queryInstance).observable;
-  }
+  // A way of remembering queries we've seen during previous renderings,
+  // so that we never attempt to fetch them again in future renderings.
+  private queryGraveyard = new Trie();
 
   public addQueryPromise<TData, TVariables>(
     queryInstance: Query<TData, TVariables>,
     finish: () => React.ReactNode,
   ): React.ReactNode {
-    const info = this.lookupQueryInfo(queryInstance);
-    if (!info.seen) {
+    const { query, variables } = queryInstance.props;
+    if (!this.queryGraveyard.has(query, JSON.stringify(variables))) {
       this.queryPromises.set(
         queryInstance,
         new Promise(resolve => {
@@ -65,6 +66,7 @@ export class RenderPromises {
   public consumeAndAwaitPromises() {
     const promises: Promise<any>[] = [];
     this.queryPromises.forEach((promise, queryInstance) => {
+      const { query, variables } = queryInstance.props;
       // Make sure we never try to call fetchData for this query document and
       // these variables again. Since the queryInstance objects change with
       // every rendering, deduplicating them by query and variables is the
@@ -74,24 +76,11 @@ export class RenderPromises {
       // rendering of an unwanted loading state, but that's not nearly as bad
       // as getting stuck in an infinite rendering loop because we kept calling
       // queryInstance.fetchData for the same Query component indefinitely.
-      this.lookupQueryInfo(queryInstance).seen = true;
+      this.queryGraveyard.add(query, JSON.stringify(variables));
       promises.push(promise);
     });
     this.queryPromises.clear();
     return Promise.all(promises);
-  }
-
-  private lookupQueryInfo<TData, TVariables>(
-    queryInstance: Query<TData, TVariables>,
-  ): QueryInfo {
-    const { queryInfoTrie } = this;
-    const { query, variables } = queryInstance.props;
-    const varMap = queryInfoTrie.get(query) || new Map<string, QueryInfo>();
-    if (!queryInfoTrie.has(query)) queryInfoTrie.set(query, varMap);
-    const variablesString = JSON.stringify(variables);
-    const info = varMap.get(variablesString) || makeDefaultQueryInfo();
-    if (!varMap.has(variablesString)) varMap.set(variablesString, info);
-    return info;
   }
 }
 
@@ -104,14 +93,14 @@ export default function getDataFromTree(
     context,
     // If you need to configure this renderFunction, call getMarkupFromTree
     // directly instead of getDataFromTree.
-    renderFunction: require("react-dom/server").renderToStaticMarkup,
+    renderFunction: renderToStaticMarkup,
   });
 }
 
 export type GetMarkupFromTreeOptions = {
   tree: React.ReactNode;
   context?: { [key: string]: any };
-  renderFunction?: (tree: React.ReactElement<any>) => string;
+  renderFunction?: typeof renderToStaticMarkup;
 };
 
 export function getMarkupFromTree({
@@ -120,7 +109,7 @@ export function getMarkupFromTree({
   // The rendering function is configurable! We use renderToStaticMarkup as
   // the default, because it's a little less expensive than renderToString,
   // and legacy usage of getDataFromTree ignores the return value anyway.
-  renderFunction = require("react-dom/server").renderToStaticMarkup,
+  renderFunction = renderToStaticMarkup,
 }: GetMarkupFromTreeOptions): Promise<string> {
   const renderPromises = new RenderPromises();
 

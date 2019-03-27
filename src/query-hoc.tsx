@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ApolloError } from 'apollo-client';
 import { DocumentNode } from 'graphql';
-import hoistNonReactStatics from 'hoist-non-react-statics';
+const hoistNonReactStatics = require('hoist-non-react-statics');
 
 import { parser } from './parser';
 import { OperationOption, QueryOpts, OptionProps, DataProps } from './types';
@@ -14,11 +14,11 @@ import {
   defaultMapPropsToSkip,
 } from './hoc-utils';
 
-export function withQuery<
+export function query<
   TProps extends TGraphQLVariables | {} = {},
   TData = {},
   TGraphQLVariables = {},
-  TChildProps = DataProps<TData, TGraphQLVariables>
+  TChildProps = Partial<DataProps<TData, TGraphQLVariables>>
 >(
   document: DocumentNode,
   operationOptions: OperationOption<TProps, TData, TGraphQLVariables, TChildProps> = {},
@@ -61,6 +61,8 @@ export function withQuery<
           opts.variables = calculateVariablesFromProps(
             operation,
             props,
+            graphQLDisplayName,
+            getDisplayName(WrappedComponent),
           );
         }
         return (

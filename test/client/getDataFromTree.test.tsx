@@ -6,12 +6,12 @@ import {
   graphql,
   Query,
   ApolloProvider,
+  walkTree,
   getDataFromTree,
   getMarkupFromTree,
   DataValue,
   ChildProps,
 } from '../../src';
-import { walkTree } from "../../src/walkTree";
 import gql from 'graphql-tag';
 const times = require('lodash.times');
 import { InMemoryCache as Cache } from 'apollo-cache-inmemory';
@@ -186,9 +186,7 @@ describe('SSR', () => {
         expect(elementCount).toEqual(2);
       });
 
-      // `walkTree` is deprecated and will be removed in `react-apollo` 3.0.
-      // It is no longer being updated to work with newer versions of `react`.
-      xit('function stateless components with React 16.3 context', () => {
+      it('function stateless components with React 16.3 context', () => {
         if (!React.createContext) {
           // Preact doesn't support createContext yet, see https://github.com/developit/preact/pull/963
           return;
@@ -417,9 +415,7 @@ describe('SSR', () => {
         });
       });
 
-      // `walkTree` is deprecated and will be removed in `react-apollo` 3.0.
-      // It is no longer being updated to work with newer versions of `react`.
-      xit('basic classes with React 16.3 context', () => {
+      it('basic classes with React 16.3 context', () => {
         if (!React.createContext) {
           // Preact doesn't support createContext yet, see https://github.com/developit/preact/pull/963
           return;
@@ -1571,50 +1567,6 @@ describe('SSR', () => {
         const markup = ReactDOM.renderToString(app);
         expect(markup).toMatch(/James/);
       });
-    });
-
-    it('should pass any GraphQL errors in props along with data during a SSR when errorPolicy="all"', done => {
-      const query: DocumentNode = gql`
-        query people {
-          allPeople {
-            people {
-              name
-            }
-          }
-        }
-      `;
-      const link = mockSingleLink({
-        request: { query },
-        result: {
-          data: {
-            allPeople: {
-              people: null,
-            },
-          },
-          errors: [new Error('this is an error')],
-        },
-      });
-
-      const client = new ApolloClient({
-        link,
-        cache: new Cache({ addTypename: false }),
-      });
-
-      const app = (
-        <ApolloProvider client={client}>
-          <Query query={query} errorPolicy="all">
-            {({ data, error }: any) => {
-              expect(data).toMatchObject({ allPeople: { people: null } });
-              expect(error).toBeDefined();
-              expect(error.graphQLErrors[0].message).toEqual('this is an error');
-              done();
-              return null;
-            }}
-          </Query>
-        </ApolloProvider>
-      );
-
-      getDataFromTree(app);
     });
   });
 });

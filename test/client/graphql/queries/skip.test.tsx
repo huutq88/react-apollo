@@ -568,7 +568,6 @@ describe('[queries] skip', () => {
     const client = new ApolloClient({
       link,
       cache: new Cache({ addTypename: false }),
-      queryDeduplication: false,
     });
 
     let hasSkipped = false;

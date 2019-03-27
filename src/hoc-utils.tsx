@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { invariant } from 'ts-invariant';
+const invariant = require('invariant');
 
 import { OperationVariables } from './types';
 import { DocumentType, IDocumentDefinition } from './parser';
@@ -15,6 +15,8 @@ export function getDisplayName<P>(WrappedComponent: React.ComponentType<P>) {
 export function calculateVariablesFromProps<TProps>(
   operation: IDocumentDefinition,
   props: TProps,
+  graphQLDisplayName: string,
+  wrapperName: string,
 ) {
   let variables: OperationVariables = {};
   for (let { variable, type } of operation.variables) {
@@ -28,10 +30,19 @@ export function calculateVariablesFromProps<TProps>(
       continue;
     }
 
-    // Allow optional props
+    // allow optional props
     if (type.kind !== 'NonNullType') {
       variables[variableName] = null;
+      continue;
     }
+
+    if (operation.type === DocumentType.Mutation) return;
+    invariant(
+      typeof variableProp !== 'undefined',
+      `The operation '${operation.name}' wrapping '${wrapperName}' ` +
+        `is expecting a variable: '${variable.name.value}' but it was not found in the props ` +
+        `passed to '${graphQLDisplayName}'`,
+    );
   }
   return variables;
 }

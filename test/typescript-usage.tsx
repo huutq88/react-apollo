@@ -164,7 +164,7 @@ const HistoryAdvancedVarsAndProps = advancedVarsAndProps(props => <div>{props.hi
 //   name: 'organisationData',
 //   props: ({
 //     organisationData,
-//   }: NamedProps<{ organisationData: QueryControls<Data> & Data }, Props>) => ({
+//   }: NamedProps<{ organisationData: GraphqlQueryControls & Data }, Props>) => ({
 //     ...organisationData,
 //   }),
 // });

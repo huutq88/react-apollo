@@ -152,7 +152,7 @@ describe('<ApolloProvider /> Component', () => {
   // });
 
   it('should add the client to the children context', () => {
-    const tree = TestUtils.renderIntoDocument<React.Component<any, any>>(
+    const tree = TestUtils.renderIntoDocument(
       <ApolloProvider client={client}>
         <Child />
         <Child />
@@ -179,7 +179,7 @@ describe('<ApolloProvider /> Component', () => {
   });
 
   it('child component should be able to query new client when props change', () => {
-    const container = TestUtils.renderIntoDocument<React.Component<any, any>>(
+    const container = TestUtils.renderIntoDocument(
       <Container client={client} />,
     ) as React.Component<any, any>;
 
